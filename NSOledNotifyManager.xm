@@ -90,7 +90,9 @@
 - (void)addIconFromBulletin:(BBBulletin *)bulletin {
   XLog(@"Adding icon: %@", bulletin.sectionID);
   SBApplicationIcon *icon = [((SBIconController *)[%c(SBIconController) sharedInstance]).model expectedIconForDisplayIdentifier:bulletin.sectionID];
+  if (!icon) return;
 	UIImage *image = [icon generateIconImage:2];
+  if (!image) return;
   XLog(@"Icon image: %@", image);
   UIImageView *imageView = [_window.rootViewController.view viewWithTag:IMAGE_VIEW_TAG];
   if (imageView) {
@@ -103,6 +105,7 @@
   }
   CCFlags flags = (CCFlags) (CCOnlyDistinctColors | CCAvoidWhite | CCAvoidBlack);
   NSArray *imgColors = [_colorCube extractColorsFromImage:imageView.image flags:flags];
+  if (!imgColors.count) return;
   _borderLayer.borderColor = ((UIColor *) imgColors[0]).CGColor;
 }
 
