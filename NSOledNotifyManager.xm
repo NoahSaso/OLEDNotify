@@ -31,7 +31,8 @@
 
   _borderLayer = [CALayer new];
   _borderLayer.frame = view.layer.bounds;
-  _borderLayer.borderWidth = 0;
+  _borderLayer.borderWidth = 0; // ANIMATION_KEY_BREATHE
+  // _borderLayer.borderWidth = _borderLayer.bounds.size.height / 2; // ANIMATION_KEY_REVEAL
   _borderLayer.continuousCorners = YES;
   _borderLayer.cornerRadius = CONTINUOUS_CORNER_RADIUS;
   [view.layer addSublayer:_borderLayer];
@@ -44,11 +45,13 @@
 
 - (void)show:(BBBulletin *)bulletin {
   // XLog(@"show bulletin: %@", bulletin);
+  XLog(@"Trying to show bulletin: %@", bulletin.sectionID);
   if (!bulletin || ![((SBLockScreenManager *)[%c(SBLockScreenManager) sharedInstance]).lockScreenViewController isInScreenOffMode]) {
     return;
   }
 
   dispatch_async(dispatch_get_main_queue(), ^{
+    XLog(@"Showing: %@", bulletin.sectionID);
     if (!self.isDisplayingOled) {
       [self load];
       [self addIconFromBulletin:bulletin];
@@ -75,37 +78,20 @@
 }
 
 - (void)animateBorder {
-  CABasicAnimation *enlargeBorder = [CABasicAnimation animationWithKeyPath:@"borderWidth"];
-  enlargeBorder.fromValue = @0;
-  enlargeBorder.toValue = @(BORDER_WIDTH * 2);
-  enlargeBorder.duration = BORDER_ANIMATION_DURATION / 2;
-  enlargeBorder.beginTime = 0;
-  enlargeBorder.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-  enlargeBorder.fillMode = kCAFillModeForwards;
-
-  CABasicAnimation *shrinkBorder = [CABasicAnimation animationWithKeyPath:@"borderWidth"];
-  shrinkBorder.fromValue = @(BORDER_WIDTH * 2);
-  shrinkBorder.toValue = @(BORDER_WIDTH);
-  shrinkBorder.duration = BORDER_ANIMATION_DURATION / 2;
-  shrinkBorder.beginTime = BORDER_ANIMATION_DURATION / 2;
-  shrinkBorder.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
-  shrinkBorder.fillMode = kCAFillModeForwards;
-
-  CAAnimationGroup *group = [CAAnimationGroup new];
-  group.duration = BORDER_ANIMATION_DURATION;
-  group.animations = @[enlargeBorder, shrinkBorder];
-  group.delegate = self;
-
-  [_borderLayer addAnimation:group forKey:@"borderWidthBreathe"];
+  [self animateBorder:ANIMATION_KEY_BREATHE];
 }
 
-- (void)animationDidStop:(CAAnimation *)anim finished:(BOOL)flag {
-  _borderLayer.borderWidth = BORDER_WIDTH;
+- (void)animateBorder:(NSString *)key {
+  XLog(@"Animating key: %@", key);
+  CAAnimation *anim = [self animationForKey:key];
+  if (anim) [_borderLayer addAnimation:anim forKey:@"layerAnimation"];
 }
 
 - (void)addIconFromBulletin:(BBBulletin *)bulletin {
+  XLog(@"Adding icon: %@", bulletin.sectionID);
   SBApplicationIcon *icon = [((SBIconController *)[%c(SBIconController) sharedInstance]).model expectedIconForDisplayIdentifier:bulletin.sectionID];
 	UIImage *image = [icon generateIconImage:2];
+  XLog(@"Icon image: %@", image);
   UIImageView *imageView = [_window.rootViewController.view viewWithTag:IMAGE_VIEW_TAG];
   if (imageView) {
     imageView.image = image;
@@ -169,6 +155,58 @@
     [_window release];
     completion(finished);
   }];
+}
+
+- (CAAnimation *)animationForKey:(NSString *)key {
+
+  if (Xeq(key, ANIMATION_KEY_BREATHE)) {
+    const CGFloat END_BORDER_WIDTH = 3.0;
+    const CGFloat MAX_BORDER_WIDTH = END_BORDER_WIDTH * 2;
+    const CGFloat BREATHE_DELAY = 0.35;
+    const CGFloat BORDER_ANIMATION_DURATION = 2.0;
+
+    CABasicAnimation *breatheUp = [CABasicAnimation animationWithKeyPath:@"borderWidth"];
+    breatheUp.fromValue = @0;
+    breatheUp.toValue = @(MAX_BORDER_WIDTH);
+    breatheUp.duration = BORDER_ANIMATION_DURATION * 1 / 2.0;
+    breatheUp.beginTime = 0;
+    breatheUp.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseOut];
+    breatheUp.fillMode = kCAFillModeForwards;
+
+    CABasicAnimation *breatheDown = [CABasicAnimation animationWithKeyPath:@"borderWidth"];
+    breatheDown.fromValue = @(MAX_BORDER_WIDTH);
+    breatheDown.toValue = @(END_BORDER_WIDTH);
+    breatheDown.duration = BORDER_ANIMATION_DURATION - breatheUp.duration;
+    breatheDown.beginTime = breatheUp.duration + BREATHE_DELAY;
+    breatheDown.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseIn];
+
+    CAAnimationGroup *group = [CAAnimationGroup new];
+    group.animations = @[breatheUp, breatheDown];
+    group.duration = breatheDown.beginTime + breatheDown.duration;
+    group.fillMode = kCAFillModeForwards;
+    group.removedOnCompletion = NO;
+    group.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+
+    return group;
+  }
+
+  else if (Xeq(key, ANIMATION_KEY_REVEAL)) {
+    const CGFloat END_BORDER_WIDTH = 3.0;
+    const CGFloat BORDER_ANIMATION_DURATION = 0.8;
+
+    CABasicAnimation *reveal = [CABasicAnimation animationWithKeyPath:@"borderWidth"];
+    reveal.fromValue = @(_borderLayer.bounds.size.height / 2);
+    reveal.toValue = @(END_BORDER_WIDTH);
+    reveal.duration = BORDER_ANIMATION_DURATION;
+    reveal.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+    reveal.fillMode = kCAFillModeForwards;
+    reveal.removedOnCompletion = NO;
+
+    return reveal;
+  }
+
+  return nil;
+
 }
 
 @end

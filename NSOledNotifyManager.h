@@ -2,7 +2,7 @@
 #import "NSOledNotifyWindow.h"
 #import "CCColorCube.h"
 
-@interface NSOledNotifyManager : NSObject <CAAnimationDelegate> {
+@interface NSOledNotifyManager : NSObject {
   NSOledNotifyWindow *_window;
   NSTimer *_hideTimer;
   CALayer *_borderLayer;
@@ -17,4 +17,6 @@
 - (void)fadeOn;
 - (void)fadeOut:(void(^)(BOOL finished))completion;
 - (void)animateBorder;
+- (void)animateBorder:(NSString *)key;
+- (CAAnimation *)animationForKey:(NSString *)key;
 @end

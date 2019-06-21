@@ -15,11 +15,12 @@
 #define kNSOLEDNotifyTappedNotification @"kOLEDNotifyTappedNotification"
 #define FADE_DURATION 0.2
 #define IMAGE_VIEW_TAG 673
-#define VISIBLE_DURATION 2.5
+#define VISIBLE_DURATION 3.0
 #define FADE_SPEED_FACTOR 0.7
-#define CONTINUOUS_CORNER_RADIUS 39
-#define BORDER_WIDTH 3
-#define BORDER_ANIMATION_DURATION 1.2
+#define CONTINUOUS_CORNER_RADIUS 39.0
+
+#define ANIMATION_KEY_BREATHE @"BREATHE"
+#define ANIMATION_KEY_REVEAL @"REVEAL"
 
 @interface BBBulletin (OLEDNotify)
 - (BOOL)turnsOnDisplay;
